@@ -1,0 +1,18 @@
+1. fix gun
+2. add super
+3. add zombie characters
+4. add bullet collision
+5. add colision with zombies
+6. spawn zombies
+7. create round based game
+8. add health, stamina, and super bars
+
+
+bullets hit just first zombie in sight
+3 hit points to kill zombie
+different zombies
+boss levels
+upgrading guns
+ammo boxes
+shield
+pick up health
