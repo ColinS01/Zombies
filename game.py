@@ -82,14 +82,15 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.x += BUL_VEL * self.direction
 
 class Zombie(pygame.sprite.Sprite):
-    def __init__(self, round):
+    def __init__(self, direction):
         super().__init__()
         self.image = pygame.image.load(os.path.join('Assets', 'zombie.png'))
         self.rect = self.image.get_rect()     
         self.pos = vec(0,0)
         self.vel = vec(0,0)
-
-        self.direction = random.randint(0,1) # 0 for Right, 1 for Left
+        
+        self.direction = direction
+        
         self.vel.x = random.randint(2,6) / 2  # Randomized velocity of the generated enemy
         
         
@@ -100,15 +101,6 @@ class Zombie(pygame.sprite.Sprite):
         if self.direction == 1:
             self.pos.x = SCREEN_WIDTH
             self.pos.y = 400
-            
-    def new_x(self):
-        self.direction = random.randint(0, 1)
-        self.vel.x = random.randint(2, 6)/2
-        if self.direction == 0:
-            self.pos.x = 0
-        if self.direction == 1:
-            self.pos.x = SCREEN_WIDTH
-        return self.pos.x
             
     def movement(self):
         # Causes the enemy to change directions upon reaching the end of screen    
@@ -127,8 +119,36 @@ class Zombie(pygame.sprite.Sprite):
             self.pos.x -= self.vel.x
         
         self.rect.center = self.pos # Updates rect
+        
+    def render(self):
+        WIN.blit(self.image, (self.pos.x, self.pos.y))
+        self.movement()
 
+
+
+class EventHandler():
+    def __init__(self):
+        self.enemy_count = 0
+        self.battle = False
+        self.enemy_generation = pygame.USEREVENT + 1
+        self.stage_enemies = []
+        self.stage = 1
+        for x in range(1, 21):
+                self.stage_enemies.append(int((x ** 2 / 2) + 1))
     
+    def world(self):
+        pygame.time.set_timer(self.enemy_generation, 2000)
+        self.battle = True
+        
+    def stage_handler(self):
+        self.world()
+        
+    def next_stage(self):  # Code for when the next stage is clicked            
+      self.stage += 1
+      self.enemy_count = 0
+      print("Stage: "  + str(self.stage))
+      pygame.time.set_timer(self.enemy_generation, 1500 - (50 * self.stage)) 
+             
 
            
 def draw_screen():
@@ -138,12 +158,13 @@ def draw_screen():
 
 def main():
     run = True
+    direction = 0
     round = 1
     zombie_count = 0
     clock = pygame.time.Clock()
     player = Character()
-    zombie = Zombie(round)
     player_group.add(player)
+    handler = EventHandler()
     
     while run:
         clock.tick(FPS)
@@ -156,10 +177,26 @@ def main():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     bullet_group.add(player.create_bullet())
-        
+            
+            if event.type == handler.enemy_generation:
+                if handler.enemy_count < handler.stage_enemies[player.stage - 1]:
+                    enemy = Zombie()
+                    zombie_group.add(enemy)
+                    handler.enemy_count += 1
                     
+            if handler.battle == True and len(zombie_group) == 0:
+                handler.next_stage()
+        
+        handler.stage_handler()
+          
         draw_screen()
         
+        for entity in zombie_group:
+            entity.update()
+            entity.movement()
+            entity.render()
+        
+            
         player.movement()
         
         bullet_group.update()
@@ -167,6 +204,7 @@ def main():
         
         bullet_group.draw(WIN)
         WIN.blit(player.image, (player.pos.x, player.pos.y))
+        
     
 
         pygame.display.update()         
