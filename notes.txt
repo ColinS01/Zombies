@@ -1,6 +1,6 @@
-1. fix gun
-2. add super
-3. add zombie characters
+1. create zombies (X)
+2. build ammo crates + add ammo
+3. add super
 4. add bullet collision
 5. add colision with zombies
 6. spawn zombies

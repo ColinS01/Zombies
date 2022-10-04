@@ -1,5 +1,8 @@
 import pygame
 import os
+import random
+from pygame.locals import *
+import sys
 
 pygame.init()
 
@@ -12,10 +15,12 @@ FRIC = -0.10
 RED = (255, 0, 0)
 WIN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Zombies')
-vec = pygame.math.Vector2
+vec = pygame.math.Vector2    
+bullet_group = pygame.sprite.Group()
+player_group = pygame.sprite.Group()
+zombie_group = pygame.sprite.Group()
 
 class Character(pygame.sprite.Sprite):
- 
     def __init__(self):
         super(Character, self).__init__()
         self.image = pygame.image.load(os.path.join('Assets', 'army_dude.png'))
@@ -26,72 +31,120 @@ class Character(pygame.sprite.Sprite):
         self.vx = 0
         self.pos = vec((0, 0))
         
-        self.x_pos = 150
-        self.y_pos = 400
+        self.pos.x = 500
+        self.pos.y = 400
         
         self.health = 3
         self.stamina = 100
         self.bullets = []
         self.super_energy = 50
         self.move_speed = 10
+        self.player_level = 1
+        self.direction = 1
         
-    def shoot(self):
-        keys_pressed = pygame.key.get_pressed()
-        if keys_pressed[pygame.K_SPACE]:
-            bullet = pygame.Rect(self.x_pos + 20, self.y_pos + 28, 10, 5)
-            self.bullets.append(bullet)
-            for bullet in self.bullets:
-                bullet.x += BUL_VEL
-                pygame.draw.rect(WIN, RED, bullet)
-                if bullet.x > SCREEN_WIDTH:
-                   self.bullets.clear()
-                
-        # make bullets not laser gun
-        # create collision with zombies
-
-    
     def movement(self):
         keys_pressed = pygame.key.get_pressed()
         if keys_pressed[pygame.K_a]:
             self.acc.x = -ACC
+            self.direction = -1
             self.image = pygame.transform.flip(pygame.image.load(os.path.join('Assets', 'army_dude.png')), flip_x= True, flip_y= False)
             
-            # add stamina dectriment for movement
-
         if keys_pressed[pygame.K_d]:
             self.acc.x = ACC
+            self.direction = 1
             self.image = pygame.image.load(os.path.join('Assets', 'army_dude.png'))
 
             
         self.acc.x += self.vel.x * FRIC
-        self.vel = self.acc
-        self.x_pos += self.vel.x + .5 * self.acc.x
+        self.vel.x = self.acc.x
+        self.pos.x += self.vel.x + .5 * self.acc.x
         
         if self.pos.x > SCREEN_WIDTH:
             self.x_pos = 0
         if self.pos.x < 0:
             self.x_pos = SCREEN_WIDTH
-        
             
-
-class Zombie(object):
-    def __init__(self):
-        pass
+    def update(self):
+        self.body.center = (self.pos.x, self.pos.y)
+            
+    def create_bullet(self):
+        return Bullet(self.pos.x, self.pos.y, self.direction)
     
-    def move():
-        pass
-    
-    def hit(self):
-        pass
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x_pos, y_pos, direction):
+        super().__init__()
+        self.direction = direction
+        self.image = pygame.Surface((10, 5))
+        self.image.fill((255, 0, 0))
+        self.rect = self.image.get_rect(center = (x_pos + 20, y_pos + 30))
+            
+    def update(self):
+        self.rect.x += BUL_VEL * self.direction
 
+class Zombie(pygame.sprite.Sprite):
+    def __init__(self, round):
+        super().__init__()
+        self.image = pygame.image.load(os.path.join('Assets', 'zombie.png'))
+        self.rect = self.image.get_rect()     
+        self.pos = vec(0,0)
+        self.vel = vec(0,0)
+
+        self.direction = random.randint(0,1) # 0 for Right, 1 for Left
+        self.vel.x = random.randint(2,6) / 2  # Randomized velocity of the generated enemy
+        
+        
+        # Sets the intial position of the enemy
+        if self.direction == 0:
+            self.pos.x = 0
+            self.pos.y = 400
+        if self.direction == 1:
+            self.pos.x = SCREEN_WIDTH
+            self.pos.y = 400
+            
+    def new_x(self):
+        self.direction = random.randint(0, 1)
+        self.vel.x = random.randint(2, 6)/2
+        if self.direction == 0:
+            self.pos.x = 0
+        if self.direction == 1:
+            self.pos.x = SCREEN_WIDTH
+        return self.pos.x
+            
+    def movement(self):
+        # Causes the enemy to change directions upon reaching the end of screen    
+        if self.pos.x >= (SCREEN_WIDTH-20):
+            self.direction = 1
+            self.image = pygame.image.load(os.path.join('Assets', 'zombie.png'))
+            
+        elif self.pos.x <= 0:
+            self.direction = 0
+            self.image = pygame.transform.flip(self.image, flip_x = True, flip_y = False)
+            
+           # Updates position with new values     
+        if self.direction == 0:
+            self.pos.x += self.vel.x
+        if self.direction == 1:
+            self.pos.x -= self.vel.x
+        
+        self.rect.center = self.pos # Updates rect
+
+    
+
+           
 def draw_screen():
     BG = pygame.image.load(os.path.join('Assets', 'background.png'))
     WIN.blit(BG, (0, 0))
+    
 
 def main():
     run = True
+    round = 1
+    zombie_count = 0
     clock = pygame.time.Clock()
     player = Character()
+    zombie = Zombie(round)
+    player_group.add(player)
+    
     while run:
         clock.tick(FPS)
         
@@ -99,12 +152,23 @@ def main():
             if event.type == pygame.QUIT:
                 run == False
                 pygame.quit()
+                
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    bullet_group.add(player.create_bullet())
         
                     
         draw_screen()
+        
         player.movement()
-        player.shoot()
-        WIN.blit(player.image, (player.x_pos, player.y_pos))  
+        
+        bullet_group.update()
+        player_group.update()
+        
+        bullet_group.draw(WIN)
+        WIN.blit(player.image, (player.pos.x, player.pos.y))
+    
+
         pygame.display.update()         
 
 
