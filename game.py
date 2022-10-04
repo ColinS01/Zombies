@@ -1,7 +1,4 @@
-from typing_extensions import Self
 import pygame
-from pygame.locals import *
-import sys
 import os
 
 pygame.init()
@@ -48,6 +45,9 @@ class Character(pygame.sprite.Sprite):
                 pygame.draw.rect(WIN, RED, bullet)
                 if bullet.x > SCREEN_WIDTH:
                    self.bullets.clear()
+                
+        # make bullets not laser gun
+        # create collision with zombies
 
     
     def movement(self):
@@ -55,6 +55,8 @@ class Character(pygame.sprite.Sprite):
         if keys_pressed[pygame.K_a]:
             self.acc.x = -ACC
             self.image = pygame.transform.flip(pygame.image.load(os.path.join('Assets', 'army_dude.png')), flip_x= True, flip_y= False)
+            
+            # add stamina dectriment for movement
 
         if keys_pressed[pygame.K_d]:
             self.acc.x = ACC
